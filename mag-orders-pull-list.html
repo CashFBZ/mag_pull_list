@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>MAG ORDERS PULL LIST</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    background: #0f1117; color: #e8e8e8;
+    min-height: 100vh; padding-bottom: 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* HEADER */
+  .header {
+    background: #1a1d27; border-bottom: 3px solid #0066cc;
+    padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100;
+  }
+  .header-sub { font-size: 10px; letter-spacing: 3px; color: #0066cc; text-transform: uppercase; margin-bottom: 4px; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-size: 19px; font-weight: bold; letter-spacing: 2px; color: #fff; }
+  .save-flash { font-size: 10px; letter-spacing: 1px; color: transparent; transition: color 0.2s; }
+  .save-flash.on { color: #00cc66; }
+
+  /* PROGRESS */
+  .progress { margin-top: 12px; }
+  .progress-text { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
+  .progress-pct { font-weight: bold; }
+  .progress-bar { height: 6px; background: #2a2d3a; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background-color 0.3s; }
+
+  /* VIEW TOGGLE */
+  .view-toggle { display: flex; margin-top: 12px; border: 1px solid #2a2d3a; border-radius: 4px; overflow: hidden; width: fit-content; }
+  .view-btn {
+    padding: 6px 16px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    border: none; cursor: pointer; font-family: inherit; transition: background 0.15s;
+  }
+  .view-btn.active { background: #0066cc; color: #fff; }
+  .view-btn:not(.active) { background: #1a1d27; color: #888; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .filter-btn {
+    padding: 5px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    border-radius: 3px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .filter-btn.active { border: 1px solid #0066cc; background: #0066cc; color: #fff; }
+  .filter-btn:not(.active) { border: 1px solid #333; background: transparent; color: #888; }
+  .reset-btn {
+    margin-left: auto; padding: 5px 12px; font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; border: 1px solid #cc3333; background: transparent;
+    color: #cc3333; border-radius: 3px; cursor: pointer; font-family: inherit;
+  }
+  .add-btn {
+    padding: 5px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    border: 1px solid #00cc66; background: transparent; color: #00cc66;
+    border-radius: 3px; cursor: pointer; font-family: inherit;
+  }
+
+  /* CONTENT */
+  .content { padding: 14px 14px 0; }
+
+  /* SECTION */
+  .section { margin-bottom: 12px; border: 1px solid #2a2d3a; border-radius: 6px; overflow: hidden; }
+  .section-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; background: #1a1d27; cursor: pointer; user-select: none;
+  }
+  .section-label { font-size: 12px; font-weight: bold; letter-spacing: 1px; }
+  .section-left { display: flex; align-items: center; gap: 10px; }
+  .section-right { display: flex; align-items: center; gap: 12px; }
+  .section-count { font-size: 11px; }
+  .section-arrow { color: #555; font-size: 13px; }
+  .done-badge {
+    font-size: 9px; background: #00cc66; color: #000; padding: 2px 7px;
+    border-radius: 10px; font-weight: bold;
+  }
+
+  /* COL HEADERS */
+  .col-head {
+    display: grid; padding: 5px 16px; background: #13151f;
+    border-top: 1px solid #2a2d3a; font-size: 10px; letter-spacing: 1px;
+    color: #555; text-transform: uppercase;
+  }
+  .col-head.with-inv { grid-template-columns: 32px 120px 1fr 44px 82px; }
+  .col-head.no-inv { grid-template-columns: 32px 120px 1fr 44px; }
+
+  /* ROW */
+  .row {
+    display: grid; align-items: center; padding: 11px 16px;
+    border-top: 1px solid #1e2130; cursor: pointer; transition: opacity 0.15s;
+  }
+  .row.with-inv { grid-template-columns: 32px 120px 1fr 44px 82px; }
+  .row.no-inv { grid-template-columns: 32px 120px 1fr 44px; }
+  .row.checked { opacity: 0.4; }
+  .row.even { background: #0f1117; }
+  .row.odd { background: #12141e; }
+  .row.checked.even, .row.checked.odd { background: #111820; }
+
+  .cb {
+    width: 20px; height: 20px; border: 2px solid #444; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .cb.on { border-color: #00cc66; background: #00cc66; }
+  .cb-check { color: #000; font-size: 13px; font-weight: bold; line-height: 1; }
+
+  .sku {
+    font-size: 11px; font-weight: bold; color: #0099ff;
+    padding-right: 8px; word-break: break-all;
+  }
+  .sku.done { color: #555; text-decoration: line-through; }
+
+  .desc { font-size: 12px; color: #ccc; padding-right: 8px; }
+  .desc.done { color: #444; text-decoration: line-through; }
+
+  .qty { font-size: 13px; font-weight: bold; color: #fff; text-align: center; }
+  .qty.done { color: #444; }
+
+  .inv-col { font-size: 10px; color: #666; letter-spacing: 0.5px; }
+  .inv-col.done { color: #333; }
+
+  .empty-row { padding: 16px; font-size: 12px; color: #555; text-align: center; }
+
+  .complete-banner {
+    margin: 16px; padding: 16px; background: #0a2a1a; border: 1px solid #00cc66;
+    border-radius: 6px; text-align: center; font-size: 14px; color: #00cc66;
+    letter-spacing: 2px; font-weight: bold;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal {
+    background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px;
+    padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 14px; letter-spacing: 2px; color: #fff; margin-bottom: 16px; text-transform: uppercase; }
+  .modal label { display: block; font-size: 11px; letter-spacing: 1px; color: #888; text-transform: uppercase; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select {
+    width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit;
+    background: #0f1117; border: 1px solid #333; border-radius: 4px; color: #e8e8e8;
+    outline: none;
+  }
+  .modal input:focus, .modal select:focus { border-color: #0066cc; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 8px 20px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    border: none; border-radius: 4px; cursor: pointer; font-family: inherit;
+  }
+  .modal-btn.primary { background: #0066cc; color: #fff; }
+  .modal-btn.cancel { background: transparent; border: 1px solid #444; color: #888; }
+  .modal-btn.danger { background: #cc3333; color: #fff; }
+
+  .delete-btn {
+    background: none; border: 1px solid #cc3333; color: #cc3333;
+    font-size: 10px; padding: 2px 8px; border-radius: 3px; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 500px) {
+    .col-head.with-inv { grid-template-columns: 28px 95px 1fr 36px 70px; }
+    .col-head.no-inv { grid-template-columns: 28px 95px 1fr 36px; }
+    .row.with-inv { grid-template-columns: 28px 95px 1fr 36px 70px; }
+    .row.no-inv { grid-template-columns: 28px 95px 1fr 36px; }
+    .sku { font-size: 10px; }
+    .desc { font-size: 11px; }
+    .header-title { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ============ DATA ============
+const DEFAULT_ITEMS = [
+  { id: 1, category: "TVs", sku: "QN85QN90FAFXZA", description: 'Samsung 85" QN90 4K Neo QLED', qty: 1, invoice: "BY0NAH-0" },
+  { id: 2, category: "TVs", sku: "QN75LS03HWFXZA", description: 'Samsung 75" The Frame LS03HW', qty: 1, invoice: "BY1ATM-0" },
+  { id: 3, category: "TVs", sku: "QN65LS03HWFXZA", description: 'Samsung 65" The Frame LS03HW', qty: 1, invoice: "BX9SAT-1" },
+  { id: 4, category: "TVs", sku: "QN55LST7DAFXZA", description: 'Samsung 55" LST7 Outdoor TV', qty: 1, invoice: "BY0JLB-0" },
+  { id: 5, category: "TVs", sku: "QN55LS03FAFXZA", description: 'Samsung 55" The Frame', qty: 1, invoice: "BY1CUR-0" },
+  { id: 6, category: "TVs", sku: "QN43LS03FAFXZA", description: 'Samsung 43" The Frame', qty: 1, invoice: "BY0WZA-0" },
+  { id: 7, category: "TVs", sku: "K75XR90M2", description: 'Sony 75" K75XR90M2 RGB 4K', qty: 1, invoice: "BY0TXY-0" },
+  { id: 8, category: "TVs", sku: "K55XR70M2", description: 'Sony 55" K55XR70M2 RGB 4K', qty: 1, invoice: "BY1BPX-0" },
+  { id: 9, category: "Audio / Speakers / Receivers", sku: "STRAN1000", description: "STR-AN1000 7.2-Ch 8K AV Receiver", qty: 1, invoice: "BY0TXY-0" },
+  { id: 10, category: "Audio / Speakers / Receivers", sku: "CINEMA 70S", description: "Marantz Cinema 70S 7.2-Ch AV Receiver", qty: 1, invoice: "BY1ATM-0" },
+  { id: 11, category: "Audio / Speakers / Receivers", sku: "CINEMA 40", description: "Marantz Cinema 40 9.4-Ch AV Receiver", qty: 1, invoice: "BY1BPX-0" },
+  { id: 12, category: "Audio / Speakers / Receivers", sku: "SONOSAMP", description: "Sonos Amp", qty: 1, invoice: "BX9SAT-1" },
+  { id: 13, category: "Audio / Speakers / Receivers", sku: "BEAM2US1BLK", description: "Sonos Beam G2 Black", qty: 1, invoice: "BY1CUR-0" },
+  { id: 14, category: "Audio / Speakers / Receivers", sku: "BEAM2US1", description: "Sonos Beam G2 White", qty: 1, invoice: "BY0WZA-0" },
+  { id: 15, category: "Audio / Speakers / Receivers", sku: "MAG6.1", description: "Sonance Mag 6.1-Ch Outdoor System", qty: 1, invoice: "BY1ATM-0" },
+  { id: 16, category: "Audio / Speakers / Receivers", sku: "MAG6.1", description: "Sonance Mag 6.1-Ch Outdoor System", qty: 1, invoice: "BY0JLB-0" },
+  { id: 17, category: "Audio / Speakers / Receivers", sku: "MAGO6SYSV3", description: "Sonance Mag 2.0-Ch Outdoor Speaker", qty: 1, invoice: "BY0VWJ-0" },
+  { id: 18, category: "Audio / Speakers / Receivers", sku: "SB46LBLA", description: "Sonance Soundbar SB46L Black", qty: 1, invoice: "BY1ATM-0" },
+  { id: 19, category: "Audio / Speakers / Receivers", sku: "MC4WHITE", description: 'Motion MC4 4" In-Ceiling Speaker', qty: 1, invoice: "BY0TXY-0" },
+  { id: 20, category: "Audio / Speakers / Receivers", sku: "MOTIONSLMXLGBL", description: "Motion SLM-XL Speaker Gloss Black", qty: 1, invoice: "BY0TXY-0" },
+  { id: 21, category: "Audio / Speakers / Receivers", sku: "KEFCI4100QLTHX", description: "KEF CI4100QL-THX In-Wall Speaker", qty: 1, invoice: "BY0TXY-0" },
+  { id: 22, category: "Audio / Speakers / Receivers", sku: "6557779", description: "Ambeo Mini Soundbar", qty: 1, invoice: "BY0NAH-0" },
+  { id: 23, category: "Audio / Speakers / Receivers", sku: "6579694", description: 'VX46R 4" Performance Level 6 Speaker', qty: 1, invoice: "BY0TXY-0" },
+  { id: 24, category: "Audio / Speakers / Receivers", sku: "6676004", description: "3000 Micro R-Evolution - Piano", qty: 1, invoice: "BY1ATM-0" },
+  { id: 25, category: "KEF Rough-In", sku: "RIF200RII", description: "KEF RIF200R 200 Round Rough-In", qty: 7, invoice: "BY0XMZ-1" },
+  { id: 26, category: "Smart Home / Networking", sku: "MAGPLUS1RM10", description: "Add a Room Package w/ REM-4000", qty: 1, invoice: "BY0TXY-0" },
+  { id: 27, category: "Smart Home / Networking", sku: "083-1-015", description: "In-Wall Flush Kit for WiFi AP", qty: 6, invoice: "BY0XMZ-1" },
+  { id: 28, category: "Smart Home / Networking", sku: "1001436MOUNT", description: "Touch 8 Flush Mount", qty: 1, invoice: "BY0XMZ-1" },
+  { id: 29, category: "Smart Home / Networking", sku: "PART", description: "Apple TV 128GB", qty: 1, invoice: "BY1ATM-0" },
+  { id: 30, category: "Mounts & Display Accessories", sku: "BLT3-B1", description: "Sanus Advanced Tilt 4D Mount", qty: 1, invoice: "BY0NAH-0" },
+  { id: 31, category: "Mounts & Display Accessories", sku: "BMF522-B1", description: "Medium Full Motion Mount", qty: 1, invoice: "BY0WZA-0" },
+  { id: 32, category: "Mounts & Display Accessories", sku: "SB02-WM", description: "Ambeo Plus Wall Mount", qty: 1, invoice: "BY0NAH-0" },
+  { id: 33, category: "Mounts & Display Accessories", sku: "SBWMFLBL", description: 'SunBriteTV Fixed Mount for 37"', qty: 1, invoice: "BY0JLB-0" },
+  { id: 34, category: "Mounts & Display Accessories", sku: "6518807", description: '43" Deco Bezel for Samsung The Frame', qty: 1, invoice: "BY0WZA-0" },
+  { id: 35, category: "Mounts & Display Accessories", sku: "NS-HTRTVF25", description: "NS Universal TV Feet Replacement", qty: 1, invoice: "BY1CUR-0" },
+  { id: 36, category: "Mounts & Display Accessories", sku: "6628190", description: "5YR TV GSP Warranty", qty: 1, invoice: "BY0TXY-0" },
+  { id: 37, category: "Cables, Wire & Power", sku: "14/4DBBLA", description: "Per Ft Direct Burial 4 Cond Wire", qty: 500, invoice: "BY1ATM-0" },
+  { id: 38, category: "Cables, Wire & Power", sku: "14/4DBBLA", description: "Per Ft Direct Burial 4 Cond Wire", qty: 500, invoice: "BY0VWJ-0" },
+  { id: 39, category: "Cables, Wire & Power", sku: "14/4DBBLA", description: "Per Ft Direct Burial 4 Cond Wire", qty: 150, invoice: "BY0JLB-0" },
+  { id: 40, category: "Cables, Wire & Power", sku: "RF-HG100AOC24", description: "RF 100' HDMI Cable", qty: 1, invoice: "BY0JLB-0" },
+  { id: 41, category: "Cables, Wire & Power", sku: "6606137", description: "60M Bullet Train 48Gbps AOC HDMI", qty: 1, invoice: "BY0XMZ-1" },
+  { id: 42, category: "Cables, Wire & Power", sku: "6606096", description: "20M Bullet Train 48Gbps AOC HDMI", qty: 1, invoice: "BY0XMZ-1" },
+  { id: 43, category: "Cables, Wire & Power", sku: "RF-HG15N24", description: "RF 15' HDMI Cable 8K 48 GBPS", qty: 1, invoice: "BY1ATM-0" },
+  { id: 44, category: "Cables, Wire & Power", sku: "PEARL481.5M", description: "AQ Pearl 5' In-Wall HDMI Cable", qty: 1, invoice: "BY1ATM-0" },
+  { id: 45, category: "Cables, Wire & Power", sku: "FOREST48.75M", description: "AQ Forest 2.5' In-Wall HDMI Cable", qty: 1, invoice: "BX9SAT-1" },
+  { id: 46, category: "Cables, Wire & Power", sku: "12FT4KROCKET", description: "RF 12' HDMI Cable 18 GBPS", qty: 1, invoice: "BX9SAT-1" },
+  { id: 47, category: "Cables, Wire & Power", sku: "BLACKLAB3M", description: "AQ Black Lab 9.8' Subwoofer Cable", qty: 1, invoice: "BY1ATM-0" },
+  { id: 48, category: "Cables, Wire & Power", sku: "RF-HTS623P", description: "RF Premium 6-Outlet Surge Protector", qty: 1, invoice: "BY0WZA-0" },
+  { id: 49, category: "Cables, Wire & Power", sku: "PQ505NA", description: "PowerQuest 505 NEMA/US Surge", qty: 1, invoice: "BY1BPX-0" },
+  { id: 50, category: "Cables, Wire & Power", sku: "PQ2", description: "PQ2 6-Outlet Surge Protector", qty: 1, invoice: "BY1ATM-0" },
+];
+
+const DEFAULT_CATEGORIES = [
+  "TVs", "Audio / Speakers / Receivers", "KEF Rough-In",
+  "Smart Home / Networking", "Mounts & Display Accessories", "Cables, Wire & Power"
+];
+
+// ============ STATE ============
+let state = {
+  items: [],
+  checked: new Set(),
+  view: "category",
+  filter: "all",
+  collapsed: {},
+  collapsedInv: {},
+  modal: null, // null | "add" | "manage"
+};
+
+// ============ STORAGE ============
+function loadState() {
+  try {
+    const saved = localStorage.getItem("mag-pull-list");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state.items = parsed.items || DEFAULT_ITEMS;
+      state.checked = new Set(parsed.checked || []);
+    } else {
+      state.items = [...DEFAULT_ITEMS];
+      state.checked = new Set();
+    }
+  } catch {
+    state.items = [...DEFAULT_ITEMS];
+    state.checked = new Set();
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem("mag-pull-list", JSON.stringify({
+      items: state.items,
+      checked: [...state.checked],
+    }));
+    flashSave();
+  } catch {}
+}
+
+function flashSave() {
+  const el = document.getElementById("save-flash");
+  if (el) { el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1200); }
+}
+
+// ============ HELPERS ============
+function getCategories() {
+  const cats = [...DEFAULT_CATEGORIES];
+  state.items.forEach(i => { if (!cats.includes(i.category)) cats.push(i.category); });
+  return cats;
+}
+
+function getInvoices() {
+  return [...new Set(state.items.map(i => i.invoice))].sort();
+}
+
+function nextId() {
+  return state.items.length > 0 ? Math.max(...state.items.map(i => i.id)) + 1 : 1;
+}
+
+function applyFilter(list) {
+  if (state.filter === "pulled") return list.filter(i => state.checked.has(i.id));
+  if (state.filter === "remaining") return list.filter(i => !state.checked.has(i.id));
+  return list;
+}
+
+// ============ RENDER ============
+function render() {
+  const cats = getCategories();
+  const invs = getInvoices();
+  const total = state.items.length;
+  const pulled = state.checked.size;
+  const pct = total > 0 ? Math.round((pulled / total) * 100) : 0;
+
+  let html = `
+    <div class="header">
+      <div class="header-sub">Best Buy Magnolia — Costa Mesa</div>
+      <div class="header-row">
+        <div class="header-title">MAG ORDERS PULL LIST</div>
+        <div id="save-flash" class="save-flash">SAVED</div>
+      </div>
+      <div class="progress">
+        <div class="progress-text">
+          <span>${pulled} of ${total} items pulled</span>
+          <span class="progress-pct" style="color:${pct===100?'#00cc66':'#0066cc'}">${pct}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${pct}%;background:${pct===100?'#00cc66':'#0066cc'}"></div>
+        </div>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn ${state.view==='category'?'active':''}" onclick="setView('category')">By Category</button>
+        <button class="view-btn ${state.view==='invoice'?'active':''}" onclick="setView('invoice')">By Invoice</button>
+      </div>
+      <div class="filters">
+        ${["all","remaining","pulled"].map(f => `<button class="filter-btn ${state.filter===f?'active':''}" onclick="setFilter('${f}')">${f==='all'?'All':f==='remaining'?'Remaining':'Pulled'}</button>`).join("")}
+        <button class="add-btn" onclick="openModal('add')">+ Add Item</button>
+        <button class="reset-btn" onclick="resetAll()">Reset All</button>
+      </div>
+    </div>
+    <div class="content">
+  `;
+
+  if (state.view === "category") {
+    cats.forEach(cat => {
+      const catItems = state.items.filter(i => i.category === cat);
+      const visible = applyFilter(catItems);
+      const catPulled = catItems.filter(i => state.checked.has(i.id)).length;
+      if (visible.length === 0 && state.filter !== "all") return;
+      html += renderSection(cat, catItems.length, catPulled, state.collapsed[cat], `toggleCollapse('${esc(cat)}')`, "#ffffff", visible, true);
+    });
+  } else {
+    invs.forEach(inv => {
+      const invItems = state.items.filter(i => i.invoice === inv);
+      const visible = applyFilter(invItems);
+      const invPulled = invItems.filter(i => state.checked.has(i.id)).length;
+      if (visible.length === 0 && state.filter !== "all") return;
+      html += renderSection(inv, invItems.length, invPulled, state.collapsedInv[inv], `toggleCollapseInv('${esc(inv)}')`, "#0099ff", visible, false);
+    });
+  }
+
+  html += `</div>`;
+
+  if (pulled === total && total > 0) {
+    html += `<div class="complete-banner">ALL ITEMS PULLED — ORDER COMPLETE</div>`;
+  }
+
+  if (state.modal === "add") html += renderAddModal();
+  if (state.modal === "manage") html += renderManageModal();
+
+  document.getElementById("app").innerHTML = html;
+}
+
+function esc(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+function renderSection(label, total, pulled, isCollapsed, toggleFn, color, visible, showInv) {
+  let html = `<div class="section">
+    <div class="section-head" onclick="${toggleFn}">
+      <div class="section-left">
+        <span class="section-label" style="color:${color}">${label.toUpperCase()}</span>
+        ${pulled===total && pulled>0 ? '<span class="done-badge">DONE</span>' : ''}
+      </div>
+      <div class="section-right">
+        <span class="section-count" style="color:${pulled===total&&pulled>0?'#00cc66':'#888'}">${pulled}/${total}</span>
+        <span class="section-arrow">${isCollapsed ? '▶' : '▼'}</span>
+      </div>
+    </div>`;
+
+  if (!isCollapsed) {
+    const cls = showInv ? "with-inv" : "no-inv";
+    html += `<div class="col-head ${cls}"><span></span><span>SKU / Item #</span><span>Description</span><span style="text-align:center">Qty</span>${showInv?'<span>Invoice</span>':''}</div>`;
+    if (visible.length === 0) {
+      html += `<div class="empty-row">No items</div>`;
+    } else {
+      visible.forEach((item, idx) => {
+        const done = state.checked.has(item.id);
+        const parity = idx % 2 === 0 ? "even" : "odd";
+        html += `<div class="row ${cls} ${done?'checked':''} ${parity}" onclick="toggleItem(${item.id})">
+          <div class="cb ${done?'on':''}">${done?'<span class="cb-check">✓</span>':''}</div>
+          <span class="sku ${done?'done':''}">${item.sku}</span>
+          <span class="desc ${done?'done':''}">${item.description}</span>
+          <span class="qty ${done?'done':''}">${item.qty}</span>
+          ${showInv?`<span class="inv-col ${done?'done':''}">${item.invoice}</span>`:''}
+        </div>`;
+      });
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderAddModal() {
+  const cats = getCategories();
+  return `<div class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2>Add New Item</h2>
+      <label>Invoice #</label>
+      <input id="add-invoice" placeholder="e.g. BY1ABC-0">
+      <label>SKU / Item #</label>
+      <input id="add-sku" placeholder="e.g. QN65LS03HWFXZA">
+      <label>Description</label>
+      <input id="add-desc" placeholder="e.g. Samsung 65 The Frame">
+      <label>Qty</label>
+      <input id="add-qty" type="number" value="1" min="1">
+      <label>Category</label>
+      <select id="add-cat">
+        ${cats.map(c => `<option value="${esc(c)}">${c}</option>`).join("")}
+        <option value="__new__">+ New Category</option>
+      </select>
+      <div id="new-cat-wrap" style="display:none">
+        <label>New Category Name</label>
+        <input id="add-new-cat" placeholder="e.g. Subwoofers">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="state.modal=null;render()">Cancel</button>
+        <button class="modal-btn primary" onclick="addItem()">Add Item</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderManageModal() {
+  return `<div class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2>Manage Items</h2>
+      <p style="font-size:12px;color:#888;margin-bottom:16px">Remove items you no longer need on this pull list.</p>
+      ${state.items.map(i => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #222">
+          <div>
+            <span style="font-size:11px;color:#0099ff;font-weight:bold">${i.sku}</span>
+            <span style="font-size:11px;color:#888;margin-left:8px">${i.description}</span>
+          </div>
+          <button class="delete-btn" onclick="deleteItem(${i.id})">DEL</button>
+        </div>
+      `).join("")}
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="modal-btn cancel" onclick="state.modal=null;render()">Close</button>
+        <button class="modal-btn danger" onclick="clearAll()">Clear All Items</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============ ACTIONS ============
+function toggleItem(id) {
+  state.checked.has(id) ? state.checked.delete(id) : state.checked.add(id);
+  saveState(); render();
+}
+
+function setView(v) { state.view = v; render(); }
+function setFilter(f) { state.filter = f; render(); }
+
+function toggleCollapse(cat) {
+  state.collapsed[cat] = !state.collapsed[cat]; render();
+}
+function toggleCollapseInv(inv) {
+  state.collapsedInv[inv] = !state.collapsedInv[inv]; render();
+}
+
+function resetAll() {
+  if (!confirm("Reset all checkmarks? Items will stay on the list.")) return;
+  state.checked = new Set();
+  saveState(); render();
+}
+
+function openModal(type) { state.modal = type; render();
+  if (type === "add") {
+    setTimeout(() => {
+      const sel = document.getElementById("add-cat");
+      if (sel) sel.onchange = () => {
+        document.getElementById("new-cat-wrap").style.display = sel.value === "__new__" ? "block" : "none";
+      };
+    }, 50);
+  }
+}
+function closeModal(e) { if (e.target.classList.contains("modal-overlay")) { state.modal = null; render(); } }
+
+function addItem() {
+  const invoice = document.getElementById("add-invoice").value.trim();
+  const sku = document.getElementById("add-sku").value.trim();
+  const desc = document.getElementById("add-desc").value.trim();
+  const qty = parseInt(document.getElementById("add-qty").value) || 1;
+  const catSel = document.getElementById("add-cat").value;
+  const newCat = document.getElementById("add-new-cat")?.value.trim();
+  const category = catSel === "__new__" ? (newCat || "Other") : catSel;
+
+  if (!sku) { alert("SKU is required."); return; }
+  if (!invoice) { alert("Invoice # is required."); return; }
+
+  state.items.push({ id: nextId(), category, sku, description: desc, qty, invoice });
+  state.modal = null;
+  saveState(); render();
+}
+
+function deleteItem(id) {
+  state.items = state.items.filter(i => i.id !== id);
+  state.checked.delete(id);
+  saveState(); render();
+  state.modal = "manage"; render();
+}
+
+function clearAll() {
+  if (!confirm("Delete ALL items from the pull list? This cannot be undone.")) return;
+  state.items = []; state.checked = new Set();
+  state.modal = null;
+  saveState(); render();
+}
+
+// ============ INIT ============
+loadState();
+render();
+</script>
+</body>
+</html>
