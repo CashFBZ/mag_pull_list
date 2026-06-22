@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>MAG ORDERS PULL LIST</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Courier New', Courier, monospace; background: #0f1117; color: #e8e8e8; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; }
+
+  .home-header { background: #1a1d27; border-bottom: 3px solid #0066cc; padding: 28px 24px 20px; }
+  .home-sub { font-size: 10px; letter-spacing: 3px; color: #0066cc; text-transform: uppercase; margin-bottom: 4px; }
+  .home-title { font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #fff; }
+  .home-desc { font-size: 12px; color: #666; margin-top: 8px; line-height: 1.5; }
+  .home-actions { padding: 16px 20px; display: flex; gap: 10px; }
+  .new-list-btn { flex: 1; padding: 14px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; background: #0066cc; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  .settings-btn { padding: 14px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; background: transparent; border: 1px solid #444; color: #888; border-radius: 6px; cursor: pointer; }
+
+  .lists-section { padding: 0 20px 80px; }
+  .lists-label { font-size: 10px; letter-spacing: 2px; color: #555; text-transform: uppercase; margin-bottom: 12px; }
+  .list-card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.15s; }
+  .list-card:hover { border-color: #0066cc; }
+  .list-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .list-card-name { font-size: 15px; font-weight: bold; color: #fff; letter-spacing: 1px; }
+  .list-card-meta { display: flex; gap: 16px; margin-top: 8px; font-size: 11px; color: #888; }
+  .list-card-progress { margin-top: 10px; }
+  .list-card-pbar { height: 4px; background: #2a2d3a; border-radius: 2px; overflow: hidden; }
+  .list-card-pfill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .list-card-ptext { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-top: 4px; }
+  .list-card-status { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: bold; letter-spacing: 0.5px; }
+  .status-complete { background: #00cc66; color: #000; }
+  .status-progress { background: #1a3a5c; color: #0099ff; }
+  .status-new { background: #2a2d3a; color: #888; }
+  .list-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .card-action-btn { padding: 5px 12px; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; border-radius: 3px; cursor: pointer; font-family: inherit; border: none; }
+  .card-open { background: #0066cc; color: #fff; }
+  .card-delete { background: transparent; border: 1px solid #cc3333; color: #cc3333; }
+  .card-duplicate { background: transparent; border: 1px solid #555; color: #888; }
+  .empty-home { text-align: center; padding: 60px 20px; color: #444; }
+  .empty-home-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-home-text { font-size: 13px; line-height: 1.8; }
+
+  .list-header { background: #1a1d27; border-bottom: 3px solid #0066cc; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 100; }
+  .list-back { font-size: 11px; letter-spacing: 1px; color: #0066cc; text-transform: uppercase; background: none; border: none; cursor: pointer; padding: 4px 0; margin-bottom: 6px; font-family: inherit; }
+  .list-header-row { display: flex; align-items: center; justify-content: space-between; }
+  .list-header-title { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: #fff; }
+  .save-flash { font-size: 10px; letter-spacing: 1px; color: transparent; transition: color 0.2s; }
+  .save-flash.on { color: #00cc66; }
+
+  .progress { margin-top: 10px; }
+  .progress-text { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
+  .progress-pct { font-weight: bold; }
+  .progress-bar { height: 6px; background: #2a2d3a; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background-color 0.3s; }
+
+  .view-toggle { display: flex; margin-top: 10px; border: 1px solid #2a2d3a; border-radius: 4px; overflow: hidden; width: fit-content; }
+  .view-btn { padding: 6px 16px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border: none; cursor: pointer; font-family: inherit; }
+  .view-btn.active { background: #0066cc; color: #fff; }
+  .view-btn:not(.active) { background: #1a1d27; color: #888; }
+
+  .filters { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .filter-btn { padding: 5px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-radius: 3px; cursor: pointer; font-family: inherit; }
+  .filter-btn.active { border: 1px solid #0066cc; background: #0066cc; color: #fff; }
+  .filter-btn:not(.active) { border: 1px solid #333; background: transparent; color: #888; }
+  .reset-btn { padding: 5px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid #cc3333; background: transparent; color: #cc3333; border-radius: 3px; cursor: pointer; font-family: inherit; }
+  .add-btn { padding: 5px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid #00cc66; background: transparent; color: #00cc66; border-radius: 3px; cursor: pointer; font-family: inherit; }
+  .scan-btn { padding: 5px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid #ff9900; background: transparent; color: #ff9900; border-radius: 3px; cursor: pointer; font-family: inherit; }
+
+  .content { padding: 14px 14px 80px; }
+  .section { margin-bottom: 12px; border: 1px solid #2a2d3a; border-radius: 6px; overflow: hidden; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #1a1d27; cursor: pointer; user-select: none; }
+  .section-label { font-size: 12px; font-weight: bold; letter-spacing: 1px; }
+  .section-left { display: flex; align-items: center; gap: 10px; }
+  .section-right { display: flex; align-items: center; gap: 12px; }
+  .section-count { font-size: 11px; }
+  .section-arrow { color: #555; font-size: 13px; }
+  .done-badge { font-size: 9px; background: #00cc66; color: #000; padding: 2px 7px; border-radius: 10px; font-weight: bold; }
+
+  .col-head { display: grid; padding: 5px 16px; background: #13151f; border-top: 1px solid #2a2d3a; font-size: 10px; letter-spacing: 1px; color: #555; text-transform: uppercase; }
+  .col-head.with-inv { grid-template-columns: 32px 120px 1fr 44px 82px; }
+  .col-head.no-inv { grid-template-columns: 32px 120px 1fr 44px; }
+  .row { display: grid; align-items: center; padding: 11px 16px; border-top: 1px solid #1e2130; cursor: pointer; transition: opacity 0.15s; }
+  .row.with-inv { grid-template-columns: 32px 120px 1fr 44px 82px; }
+  .row.no-inv { grid-template-columns: 32px 120px 1fr 44px; }
+  .row.checked { opacity: 0.4; }
+  .row.even { background: #0f1117; }
+  .row.odd { background: #12141e; }
+  .row.checked.even, .row.checked.odd { background: #111820; }
+  .cb { width: 20px; height: 20px; border: 2px solid #444; border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .cb.on { border-color: #00cc66; background: #00cc66; }
+  .cb-check { color: #000; font-size: 13px; font-weight: bold; line-height: 1; }
+  .sku { font-size: 11px; font-weight: bold; color: #0099ff; padding-right: 8px; word-break: break-all; }
+  .sku.done { color: #555; text-decoration: line-through; }
+  .desc { font-size: 12px; color: #ccc; padding-right: 8px; }
+  .desc.done { color: #444; text-decoration: line-through; }
+  .qty { font-size: 13px; font-weight: bold; color: #fff; text-align: center; }
+  .qty.done { color: #444; }
+  .inv-col { font-size: 10px; color: #666; letter-spacing: 0.5px; }
+  .inv-col.done { color: #333; }
+  .empty-row { padding: 16px; font-size: 12px; color: #555; text-align: center; }
+  .complete-banner { margin: 16px; padding: 16px; background: #0a2a1a; border: 1px solid #00cc66; border-radius: 6px; text-align: center; font-size: 14px; color: #00cc66; letter-spacing: 2px; font-weight: bold; }
+
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 24px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 14px; letter-spacing: 2px; color: #fff; margin-bottom: 16px; text-transform: uppercase; }
+  .modal label { display: block; font-size: 11px; letter-spacing: 1px; color: #888; text-transform: uppercase; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: #0f1117; border: 1px solid #333; border-radius: 4px; color: #e8e8e8; outline: none; }
+  .modal input:focus, .modal select:focus { border-color: #0066cc; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-btn { padding: 8px 20px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  .modal-btn.primary { background: #0066cc; color: #fff; }
+  .modal-btn.cancel { background: transparent; border: 1px solid #444; color: #888; }
+  .modal-btn.danger { background: #cc3333; color: #fff; }
+  .modal-btn.success { background: #00cc66; color: #000; font-weight: bold; }
+  .modal-btn.scan-action { background: #ff9900; color: #000; font-weight: bold; }
+
+  .bulk-add-row { display: grid; grid-template-columns: 100px 1fr 50px 32px; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .bulk-add-row input { padding: 6px 8px; font-size: 12px; }
+  .remove-row-btn { background: none; border: none; color: #cc3333; font-size: 16px; cursor: pointer; font-family: inherit; padding: 4px; }
+  .add-row-btn { margin-top: 8px; padding: 6px 14px; font-size: 11px; letter-spacing: 1px; background: transparent; border: 1px solid #444; color: #888; border-radius: 3px; cursor: pointer; font-family: inherit; text-transform: uppercase; }
+
+  /* SCAN SPECIFIC */
+  .scan-upload-area { border: 2px dashed #444; border-radius: 8px; padding: 30px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; margin-top: 12px; }
+  .scan-upload-area:hover { border-color: #ff9900; }
+  .scan-upload-icon { font-size: 36px; margin-bottom: 10px; color: #555; }
+  .scan-upload-text { font-size: 12px; color: #888; line-height: 1.6; }
+  .scan-upload-text strong { color: #ff9900; }
+  .scanning-indicator { text-align: center; padding: 40px 20px; }
+  .scanning-spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #ff9900; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .scanning-text { font-size: 13px; color: #ff9900; letter-spacing: 1px; }
+  .scanning-sub { font-size: 11px; color: #666; margin-top: 8px; }
+
+  .review-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 12px; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 4px; margin-bottom: 6px; align-items: center; }
+  .review-item-info { }
+  .review-item-sku { font-size: 11px; font-weight: bold; color: #0099ff; }
+  .review-item-desc { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .review-item-meta { font-size: 10px; color: #666; margin-top: 2px; }
+  .review-remove { background: none; border: none; color: #cc3333; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+  .review-invoice { font-size: 12px; color: #ff9900; font-weight: bold; margin-bottom: 12px; letter-spacing: 1px; }
+  .review-count { font-size: 11px; color: #888; margin-bottom: 12px; }
+
+  .api-key-status { font-size: 11px; margin-top: 8px; padding: 6px 10px; border-radius: 4px; }
+  .api-key-set { background: #0a2a1a; color: #00cc66; border: 1px solid #00cc66; }
+  .api-key-unset { background: #2a1a1a; color: #cc3333; border: 1px solid #cc3333; }
+
+  @media (max-width: 500px) {
+    .col-head.with-inv { grid-template-columns: 28px 90px 1fr 36px 68px; }
+    .col-head.no-inv { grid-template-columns: 28px 90px 1fr 36px; }
+    .row.with-inv { grid-template-columns: 28px 90px 1fr 36px 68px; }
+    .row.no-inv { grid-template-columns: 28px 90px 1fr 36px; }
+    .sku { font-size: 10px; } .desc { font-size: 11px; }
+    .list-header-title { font-size: 15px; }
+    .bulk-add-row { grid-template-columns: 80px 1fr 44px 28px; }
+    .home-actions { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="scan-file-input" accept="image/*" style="display:none" multiple>
+
+<script>
+const DEFAULT_CATEGORIES = [
+  "TVs", "Audio / Speakers / Receivers", "KEF Rough-In",
+  "Smart Home / Networking", "Mounts & Display Accessories", "Cables, Wire & Power"
+];
+
+const SCAN_PROMPT = `You are reading a Best Buy Magnolia delivery invoice. This is a printed document with a specific table layout. Your job is to extract EVERY product line item that needs to be physically pulled from the warehouse.
+
+INVOICE LAYOUT:
+- Top-right box: Invoice number (format like "BX9SAT-1" or "BY0TXY-0") and Date
+- Middle section: Customer info, delivery date, salesperson
+- MAIN TABLE has these columns from left to right:
+  Column 1: "Item Number" — this is the SKU/model number (e.g. QN65LS03HWFXZA, SONOSAMP, 6557779, BEAM2US1BLK, 14/4DBBLA, RF-HG15N24)
+  Column 2: "Description" — product description text
+  Column 3: "Brand" — brand code (XXXXX, SONAN, KEF, AUDQS, etc.)
+  Column 4: "U/M" — unit of measure (always "EA")
+  Column 5: "Ordered" — quantity ordered (THIS IS THE QTY I NEED)
+  Column 6: "Shipped" — quantity already shipped/fulfilled
+  Column 7: "List Price" — price per unit
+  Column 8: "Extended" — total price
+
+CRITICAL INSTRUCTIONS:
+1. Read EVERY single row in the table. Do NOT skip any rows. Go line by line from top to bottom.
+2. The "Item Number" column is on the far LEFT. Read it carefully — these are alphanumeric codes like QN85QN90FAFXZA, STRAN1000, K75XR90M2, CINEMA 40, MAG6.1, 14/4DBBLA, 083-1-015, 6606137, etc.
+3. For each row, compare the "Ordered" number to the "Shipped" number.
+4. INCLUDE the item ONLY IF Shipped < Ordered (meaning items still need to be pulled).
+5. EXCLUDE (skip) the item if Shipped >= Ordered (already fulfilled).
+6. The qty to pull = Ordered value (NOT Ordered minus Shipped).
+
+EXCLUDE THESE NON-PRODUCT LINE ITEMS (these are labor/services, not physical products):
+- CUSTWORK (Custom Work)
+- CPARTS (miscellaneous parts placeholder)  
+- CUSTPROG (Custom Programming)
+- DISCSRV (Discount/Services)
+- ADDTVMNT (Add Basic TV Mount Setup — this is labor)
+- REMSETUP (Install & Adv Program — this is labor)
+- AVSETUP (Delivery/AVR Setup — this is labor)
+- SODEPOSIT (Forfeited Deposit)
+- California Recycle Fee lines
+- Any row where description says "CUSTOM WORK", "CUSTOM PROGRAMMING", "INSTALLATION", or "PROGRAMMING"
+
+EXCEPTION - INCLUDE THESE EVEN IF ITEM NUMBER LOOKS GENERIC:
+- "PART" with a real product description like "APPLE TV 128GB" — this IS a physical product, include it
+- 7-digit number SKUs like "6557779", "6579694", "6606137", "6628190" — these ARE real products, include them
+- Warranty items like "5YR..." — include these
+
+CATEGORIZE each included item:
+- "TVs" — televisions, displays, Samsung Frame, Samsung Neo, Sony TVs, outdoor TVs
+- "Audio / Speakers / Receivers" — speakers, soundbars, receivers, amplifiers, subwoofers (Sonos, Marantz, KEF, Sonance, Motion, Ambeo)
+- "Smart Home / Networking" — Apple TV, control systems, flush mounts for WiFi/networking, Savant
+- "Mounts & Display Accessories" — TV mounts, wall mounts, bezels, TV feet, brackets
+- "Cables, Wire & Power" — ALL cables (HDMI, speaker wire, burial wire, subwoofer cable), surge protectors, power conditioners
+- "KEF Rough-In" — KEF rough-in brackets (RIF200RII, RIF160RII, RIF5160L, etc.)
+
+Respond with ONLY valid JSON, no markdown, no backticks, no explanation:
+{"invoice": "INVOICE_NUMBER", "items": [{"sku": "ITEM_NUMBER", "description": "DESCRIPTION", "qty": ORDERED_NUMBER, "category": "CATEGORY"}]}
+
+If the image is unreadable, respond: {"error": "Could not read invoice"}`;
+
+// ============ STATE ============
+let state = {
+  lists: [], currentListId: null, listView: "category", listFilter: "all",
+  collapsed: {}, collapsedInv: {},
+  modal: null, // null|"newList"|"addItems"|"scan"|"scanReview"|"settings"
+  bulkRows: [{ sku: "", description: "", qty: 1 }],
+  scanResults: null, // { invoice, items }
+  scanQueue: [],     // images waiting to be scanned
+  scanning: false,
+  scanError: null,
+};
+
+// ============ STORAGE ============
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem("mag-dashboard") || "null");
+    if (d && d.lists) { state.lists = d.lists; state.lists.forEach(l => { l.checked = new Set(l.checked || []); }); }
+  } catch { state.lists = []; }
+}
+function save() {
+  try {
+    localStorage.setItem("mag-dashboard", JSON.stringify({ lists: state.lists.map(l => ({ ...l, checked: [...l.checked] })) }));
+    setTimeout(() => { const el = document.getElementById("save-flash"); if (el) { el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1200); } }, 50);
+  } catch {}
+}
+function getApiKey() { return localStorage.getItem("mag-api-key") || ""; }
+function setApiKey(k) { localStorage.setItem("mag-api-key", k); }
+
+// ============ HELPERS ============
+function currentList() { return state.lists.find(l => l.id === state.currentListId); }
+function getCategories(items) { const c=[...DEFAULT_CATEGORIES]; items.forEach(i=>{if(!c.includes(i.category))c.push(i.category)}); return c.filter(cat=>items.some(i=>i.category===cat)); }
+function getInvoices(items) { return [...new Set(items.map(i => i.invoice))].sort(); }
+function nextItemId(list) { return list.items.length > 0 ? Math.max(...list.items.map(i => i.id)) + 1 : 1; }
+function nextListId() { return state.lists.length > 0 ? Math.max(...state.lists.map(l => l.id)) + 1 : 1; }
+function applyFilter(items, checked) {
+  if (state.listFilter === "pulled") return items.filter(i => checked.has(i.id));
+  if (state.listFilter === "remaining") return items.filter(i => !checked.has(i.id));
+  return items;
+}
+function esc(s) { return (s||"").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
+function formatDate(ts) { return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+
+// ============ SCAN ENGINE ============
+async function scanImage(base64Data, mediaType) {
+  const apiKey = getApiKey();
+  if (!apiKey) { state.scanError = "No API key set. Go to Settings on the home screen."; state.scanning = false; render(); return; }
+
+  state.scanning = true; state.scanError = null; render();
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-6",
+        max_tokens: 4096,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType || "image/jpeg", data: base64Data } },
+            { type: "text", text: SCAN_PROMPT }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      if (resp.status === 401) throw new Error("Invalid API key. Check Settings.");
+      if (resp.status === 429) throw new Error("Rate limited. Wait a moment and try again.");
+      throw new Error("API error: " + resp.status);
+    }
+
+    const data = await resp.json();
+    const text = data.content.map(c => c.text || "").join("");
+    const clean = text.replace(/```json|```/g, "").trim();
+    
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (parseErr) {
+      console.log("Raw API response:", text);
+      throw new Error("Failed to parse scan results. The response may have been cut off. Raw response logged to console.");
+    }
+
+    if (parsed.error) throw new Error(parsed.error);
+    if (!parsed.items || !Array.isArray(parsed.items)) throw new Error("Scan returned no items array. Invoice may be unclear.");
+    if (parsed.items.length === 0) throw new Error("Scan found 0 items. The invoice photo may be too blurry or dark. Try taking a clearer photo.");
+
+    if (state.scanResults) {
+      // Merge with existing scan results
+      state.scanResults.items.push(...parsed.items.map((it, i) => ({ ...it, _id: Date.now() + i })));
+      if (parsed.invoice && !state.scanResults.invoices.includes(parsed.invoice)) {
+        state.scanResults.invoices.push(parsed.invoice);
+      }
+    } else {
+      state.scanResults = {
+        invoices: [parsed.invoice],
+        items: parsed.items.map((it, i) => ({ ...it, _id: Date.now() + i })),
+      };
+    }
+
+    // Process next in queue
+    if (state.scanQueue.length > 0) {
+      const next = state.scanQueue.shift();
+      await scanImage(next.data, next.type);
+      return;
+    }
+
+    state.scanning = false;
+    state.modal = "scanReview";
+    render();
+
+  } catch (e) {
+    state.scanning = false;
+    state.scanError = e.message;
+    if (state.scanResults && state.scanResults.items.length > 0) {
+      state.modal = "scanReview"; // Show what we got so far
+    }
+    render();
+  }
+}
+
+function compressImage(dataUrl, maxWidth = 1800) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL("image/jpeg", 0.85);
+      resolve({ data: compressed.split(",")[1], type: "image/jpeg" });
+    };
+    img.src = dataUrl;
+  });
+}
+
+function handleFileSelect(files) {
+  if (!files || files.length === 0) return;
+  state.scanResults = null;
+  state.scanQueue = [];
+
+  const fileArray = Array.from(files);
+  let loaded = 0;
+  const fileData = [];
+
+  fileArray.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const compressed = await compressImage(e.target.result);
+      fileData[idx] = compressed;
+      loaded++;
+      if (loaded === fileArray.length) {
+        const valid = fileData.filter(Boolean);
+        const [first, ...rest] = valid;
+        state.scanQueue = rest;
+        state.modal = "scan";
+        scanImage(first.data, first.type);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ============ RENDER: HOME ============
+function renderHome() {
+  const hasKey = !!getApiKey();
+  let html = `
+    <div class="home-header">
+      <div class="home-sub">Best Buy Magnolia — Costa Mesa</div>
+      <div class="home-title">MAG ORDERS PULL LIST</div>
+      <div class="home-desc">Create pull lists. Scan invoices. Track your pulls.</div>
+    </div>
+    <div class="home-actions">
+      <button class="new-list-btn" onclick="openNewListModal()">+ New Pull List</button>
+      <button class="settings-btn" onclick="state.modal='settings';render()">Settings</button>
+    </div>
+    <div class="lists-section">
+      <div class="lists-label">Your Pull Lists</div>`;
+
+  if (state.lists.length === 0) {
+    html += `<div class="empty-home"><div class="empty-home-icon">[ ]</div><div class="empty-home-text">No pull lists yet.<br>Tap "+ New Pull List" to get started.</div></div>`;
+  } else {
+    [...state.lists].sort((a, b) => b.createdAt - a.createdAt).forEach(list => {
+      const total = list.items.length, pulled = list.checked.size;
+      const pct = total > 0 ? Math.round((pulled / total) * 100) : 0;
+      const invCount = new Set(list.items.map(i => i.invoice)).size;
+      let sc, st;
+      if (total === 0) { sc = "status-new"; st = "EMPTY"; }
+      else if (pulled === total) { sc = "status-complete"; st = "COMPLETE"; }
+      else { sc = "status-progress"; st = "IN PROGRESS"; }
+      html += `
+        <div class="list-card" onclick="openList(${list.id})">
+          <div class="list-card-top"><div class="list-card-name">${list.name}</div><span class="list-card-status ${sc}">${st}</span></div>
+          <div class="list-card-meta"><span>${total} items</span><span>${invCount} invoice${invCount!==1?'s':''}</span><span>${formatDate(list.createdAt)}</span></div>
+          <div class="list-card-progress"><div class="list-card-pbar"><div class="list-card-pfill" style="width:${pct}%;background:${pct===100?'#00cc66':'#0066cc'}"></div></div><div class="list-card-ptext"><span>${pulled}/${total} pulled</span><span>${pct}%</span></div></div>
+          <div class="list-card-actions" onclick="event.stopPropagation()">
+            <button class="card-action-btn card-open" onclick="openList(${list.id})">Open</button>
+            <button class="card-action-btn card-duplicate" onclick="duplicateList(${list.id})">Duplicate</button>
+            <button class="card-action-btn card-delete" onclick="deleteList(${list.id})">Delete</button>
+          </div>
+        </div>`;
+    });
+  }
+  html += `</div>`;
+  if (state.modal === "newList") html += renderNewListModal();
+  if (state.modal === "settings") html += renderSettingsModal();
+  return html;
+}
+
+// ============ RENDER: LIST VIEW ============
+function renderListView() {
+  const list = currentList();
+  if (!list) { state.currentListId = null; return renderHome(); }
+  const total = list.items.length, pulled = list.checked.size;
+  const pct = total > 0 ? Math.round((pulled / total) * 100) : 0;
+
+  let html = `
+    <div class="list-header">
+      <button class="list-back" onclick="goHome()">&#8592; All Lists</button>
+      <div class="list-header-row">
+        <div class="list-header-title">${list.name}</div>
+        <div id="save-flash" class="save-flash">SAVED</div>
+      </div>
+      <div class="progress">
+        <div class="progress-text"><span>${pulled} of ${total} items pulled</span><span class="progress-pct" style="color:${pct===100?'#00cc66':'#0066cc'}">${pct}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'#00cc66':'#0066cc'}"></div></div>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn ${state.listView==='category'?'active':''}" onclick="setListView('category')">By Category</button>
+        <button class="view-btn ${state.listView==='invoice'?'active':''}" onclick="setListView('invoice')">By Invoice</button>
+      </div>
+      <div class="filters">
+        ${["all","remaining","pulled"].map(f=>`<button class="filter-btn ${state.listFilter===f?'active':''}" onclick="setListFilter('${f}')">${f==='all'?'All':f==='remaining'?'Remaining':'Pulled'}</button>`).join("")}
+        <button class="scan-btn" onclick="triggerScan()">Scan Invoice</button>
+        <button class="add-btn" onclick="openAddItemsModal()">+ Manual</button>
+        <button class="reset-btn" onclick="resetChecks()">Reset</button>
+      </div>
+    </div>
+    <div class="content">`;
+
+  if (total === 0) {
+    html += `<div class="empty-home" style="padding:40px 20px"><div class="empty-home-icon">[ ]</div><div class="empty-home-text">No items yet.<br>Tap "Scan Invoice" to photograph your papers,<br>or "+ Manual" to add items by hand.</div></div>`;
+  } else {
+    const cats = getCategories(list.items), invs = getInvoices(list.items);
+    if (state.listView === "category") {
+      cats.forEach(cat => {
+        const ci = list.items.filter(i => i.category === cat), vis = applyFilter(ci, list.checked);
+        const cp = ci.filter(i => list.checked.has(i.id)).length;
+        if (vis.length === 0 && state.listFilter !== "all") return;
+        html += renderSection(cat, ci.length, cp, state.collapsed[cat], `toggleCollapse('${esc(cat)}')`, "#ffffff", vis, true, list.checked);
+      });
+    } else {
+      invs.forEach(inv => {
+        const ii = list.items.filter(i => i.invoice === inv), vis = applyFilter(ii, list.checked);
+        const ip = ii.filter(i => list.checked.has(i.id)).length;
+        if (vis.length === 0 && state.listFilter !== "all") return;
+        html += renderSection(inv, ii.length, ip, state.collapsedInv[inv], `toggleCollapseInv('${esc(inv)}')`, "#0099ff", vis, false, list.checked);
+      });
+    }
+  }
+
+  html += `</div>`;
+  if (pulled === total && total > 0) html += `<div class="complete-banner">ALL ITEMS PULLED — ORDER COMPLETE</div>`;
+  if (state.modal === "addItems") html += renderAddItemsModal();
+  if (state.modal === "scan") html += renderScanModal();
+  if (state.modal === "scanReview") html += renderScanReviewModal();
+  if (state.modal === "settings") html += renderSettingsModal();
+  return html;
+}
+
+// ============ RENDER: SECTIONS ============
+function renderSection(label, total, pulled, isCollapsed, toggleFn, color, visible, showInv, checked) {
+  let h = `<div class="section"><div class="section-head" onclick="${toggleFn}">
+    <div class="section-left"><span class="section-label" style="color:${color}">${label.toUpperCase()}</span>${pulled===total&&pulled>0?'<span class="done-badge">DONE</span>':''}</div>
+    <div class="section-right"><span class="section-count" style="color:${pulled===total&&pulled>0?'#00cc66':'#888'}">${pulled}/${total}</span><span class="section-arrow">${isCollapsed?'&#9654;':'&#9660;'}</span></div></div>`;
+  if (!isCollapsed) {
+    const cls = showInv ? "with-inv" : "no-inv";
+    h += `<div class="col-head ${cls}"><span></span><span>SKU</span><span>Description</span><span style="text-align:center">Qty</span>${showInv?'<span>Invoice</span>':''}</div>`;
+    if (visible.length === 0) { h += `<div class="empty-row">No items</div>`; }
+    else { visible.forEach((item, idx) => {
+      const done = checked.has(item.id);
+      h += `<div class="row ${cls} ${done?'checked':''} ${idx%2===0?'even':'odd'}" onclick="toggleItem(${item.id})">
+        <div class="cb ${done?'on':''}">${done?'<span class="cb-check">&#10003;</span>':''}</div>
+        <span class="sku ${done?'done':''}">${item.sku}</span><span class="desc ${done?'done':''}">${item.description}</span>
+        <span class="qty ${done?'done':''}">${item.qty}</span>${showInv?`<span class="inv-col ${done?'done':''}">${item.invoice}</span>`:''}</div>`;
+    }); }
+  }
+  h += `</div>`; return h;
+}
+
+// ============ MODALS ============
+function renderNewListModal() {
+  return `<div class="modal-overlay" onclick="closeModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <h2>New Pull List</h2>
+    <label>List Name</label><input id="new-list-name" placeholder="e.g. Week of 6/23 Deliveries">
+    <div class="modal-actions"><button class="modal-btn cancel" onclick="state.modal=null;render()">Cancel</button><button class="modal-btn primary" onclick="createList()">Create</button></div>
+  </div></div>`;
+}
+
+function renderSettingsModal() {
+  const key = getApiKey();
+  const masked = key ? key.slice(0, 10) + "..." + key.slice(-4) : "";
+  return `<div class="modal-overlay" onclick="closeModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <h2>Settings</h2>
+    <label>Anthropic API Key</label>
+    <p style="font-size:11px;color:#666;margin-bottom:8px;line-height:1.5">Required for invoice scanning. Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:#0099ff">console.anthropic.com</a></p>
+    <input id="api-key-input" type="password" placeholder="sk-ant-..." value="${esc(key)}">
+    <div class="api-key-status ${key ? 'api-key-set' : 'api-key-unset'}">${key ? 'API key saved: ' + masked : 'No API key set — scanning will not work'}</div>
+    <div class="modal-actions">
+      ${key ? '<button class="modal-btn danger" onclick="removeApiKey()">Remove Key</button>' : ''}
+      <button class="modal-btn cancel" onclick="state.modal=null;render()">Cancel</button>
+      <button class="modal-btn primary" onclick="saveApiKey()">Save</button>
+    </div>
+  </div></div>`;
+}
+
+function renderScanModal() {
+  let inner = "";
+  if (state.scanning) {
+    const remaining = state.scanQueue.length;
+    inner = `<div class="scanning-indicator">
+      <div class="scanning-spinner"></div>
+      <div class="scanning-text">SCANNING INVOICE...</div>
+      <div class="scanning-sub">Reading items, quantities, and shipped status</div>
+      ${remaining > 0 ? `<div class="scanning-sub" style="margin-top:8px">${remaining} more invoice${remaining>1?'s':''} queued</div>` : ''}
+    </div>`;
+  } else if (state.scanError) {
+    inner = `<div style="text-align:center;padding:20px">
+      <div style="font-size:14px;color:#cc3333;margin-bottom:12px">Scan Error</div>
+      <div style="font-size:12px;color:#888;line-height:1.6">${state.scanError}</div>
+      <div class="modal-actions" style="justify-content:center">
+        <button class="modal-btn cancel" onclick="state.modal=null;state.scanError=null;render()">Close</button>
+        <button class="modal-btn scan-action" onclick="triggerScan()">Try Again</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="modal-overlay" onclick="closeModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <h2>Scan Invoice</h2>${inner}
+  </div></div>`;
+}
+
+function renderScanReviewModal() {
+  const r = state.scanResults;
+  if (!r) return "";
+  const items = r.items;
+  let html = `<div class="modal-overlay" onclick="closeModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <h2>Review Scanned Items</h2>
+    <div class="review-invoice">Invoice: ${r.invoices.join(", ")}</div>
+    <div class="review-count">${items.length} items found — remove any you don't need</div>
+    ${state.scanError ? `<div style="font-size:11px;color:#cc3333;margin-bottom:12px">Note: ${state.scanError}</div>` : ''}`;
+
+  items.forEach((it, i) => {
+    html += `<div class="review-item">
+      <div class="review-item-info">
+        <div class="review-item-sku">${it.sku}</div>
+        <div class="review-item-desc">${it.description}</div>
+        <div class="review-item-meta">Qty: ${it.qty} — ${it.category}</div>
+      </div>
+      <button class="review-remove" onclick="removeScanItem(${i})" title="Remove">&times;</button>
+    </div>`;
+  });
+
+  html += `
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #2a2d3a">
+      <button class="scan-btn" onclick="scanMore()" style="width:100%;padding:10px;margin-bottom:10px;border-radius:4px">Scan Another Invoice</button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="state.modal=null;state.scanResults=null;state.scanError=null;render()">Cancel</button>
+      <button class="modal-btn success" onclick="acceptScanResults()">Add ${items.length} Items to List</button>
+    </div>
+  </div></div>`;
+  return html;
+}
+
+function renderAddItemsModal() {
+  const list = currentList();
+  const allCats = [...new Set([...DEFAULT_CATEGORIES, ...(list ? getCategories(list.items) : [])])];
+  let rowsHtml = "";
+  state.bulkRows.forEach((r, i) => {
+    rowsHtml += `<div class="bulk-add-row">
+      <input placeholder="SKU" value="${esc(r.sku)}" onchange="updateBulkRow(${i},'sku',this.value)">
+      <input placeholder="Description" value="${esc(r.description)}" onchange="updateBulkRow(${i},'description',this.value)">
+      <input type="number" value="${r.qty}" min="1" style="text-align:center" onchange="updateBulkRow(${i},'qty',this.value)">
+      <button class="remove-row-btn" onclick="removeBulkRow(${i})">&times;</button>
+    </div>`;
+  });
+  return `<div class="modal-overlay" onclick="closeModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <h2>Add Items Manually</h2>
+    <label>Invoice #</label><input id="bulk-invoice" placeholder="e.g. BY1ABC-0">
+    <label>Category</label><select id="bulk-cat">${allCats.map(c=>`<option value="${esc(c)}">${c}</option>`).join("")}<option value="__new__">+ New Category</option></select>
+    <div id="new-cat-wrap" style="display:none;margin-top:8px"><input id="bulk-new-cat" placeholder="New category name"></div>
+    <label style="margin-top:16px">Items</label><div id="bulk-rows">${rowsHtml}</div>
+    <button class="add-row-btn" onclick="addBulkRow()">+ Another Item</button>
+    <div class="modal-actions"><button class="modal-btn cancel" onclick="state.modal=null;state.bulkRows=[{sku:'',description:'',qty:1}];render()">Cancel</button><button class="modal-btn success" onclick="submitBulkAdd()">Add Items</button></div>
+  </div></div>`;
+}
+
+// ============ RENDER ROUTER ============
+function render() {
+  document.getElementById("app").innerHTML = state.currentListId !== null ? renderListView() : renderHome();
+  setTimeout(() => {
+    const sel = document.getElementById("bulk-cat");
+    if (sel) sel.onchange = () => { const w = document.getElementById("new-cat-wrap"); if (w) w.style.display = sel.value === "__new__" ? "block" : "none"; };
+  }, 50);
+}
+
+// ============ ACTIONS: HOME ============
+function openNewListModal() { state.modal = "newList"; render(); setTimeout(() => { const el = document.getElementById("new-list-name"); if (el) el.focus(); }, 100); }
+function createList() {
+  const name = document.getElementById("new-list-name").value.trim();
+  if (!name) { alert("Enter a name."); return; }
+  const nl = { id: nextListId(), name, createdAt: Date.now(), items: [], checked: new Set() };
+  state.lists.push(nl); state.currentListId = nl.id; state.modal = null;
+  state.collapsed = {}; state.collapsedInv = {}; state.listFilter = "all";
+  save(); render();
+}
+function openList(id) { state.currentListId = id; state.modal = null; state.collapsed = {}; state.collapsedInv = {}; state.listView = "category"; state.listFilter = "all"; render(); }
+function deleteList(id) { const l = state.lists.find(x => x.id === id); if (!confirm(`Delete "${l.name}"?`)) return; state.lists = state.lists.filter(x => x.id !== id); if (state.currentListId === id) state.currentListId = null; save(); render(); }
+function duplicateList(id) { const o = state.lists.find(x => x.id === id); if (!o) return; state.lists.push({ id: nextListId(), name: o.name + " (Copy)", createdAt: Date.now(), items: o.items.map(i => ({ ...i })), checked: new Set() }); save(); render(); }
+function goHome() { state.currentListId = null; state.modal = null; render(); }
+function saveApiKey() { const v = document.getElementById("api-key-input").value.trim(); setApiKey(v); state.modal = null; render(); }
+function removeApiKey() { setApiKey(""); state.modal = null; render(); }
+
+// ============ ACTIONS: LIST ============
+function toggleItem(id) { const l = currentList(); l.checked.has(id) ? l.checked.delete(id) : l.checked.add(id); save(); render(); }
+function setListView(v) { state.listView = v; render(); }
+function setListFilter(f) { state.listFilter = f; render(); }
+function toggleCollapse(c) { state.collapsed[c] = !state.collapsed[c]; render(); }
+function toggleCollapseInv(c) { state.collapsedInv[c] = !state.collapsedInv[c]; render(); }
+function resetChecks() { if (!confirm("Reset all checkmarks?")) return; currentList().checked = new Set(); save(); render(); }
+
+// ============ ACTIONS: SCAN ============
+function triggerScan() {
+  if (!getApiKey()) { state.modal = "settings"; render(); return; }
+  document.getElementById("scan-file-input").click();
+}
+document.getElementById("scan-file-input").addEventListener("change", function(e) {
+  handleFileSelect(e.target.files);
+  this.value = "";
+});
+function removeScanItem(i) { state.scanResults.items.splice(i, 1); render(); }
+function scanMore() { state.modal = null; state.scanError = null; setTimeout(() => triggerScan(), 100); }
+function acceptScanResults() {
+  const list = currentList(); const r = state.scanResults;
+  if (!r || !list) return;
+  let id = nextItemId(list);
+  r.items.forEach(it => {
+    const invoice = r.invoices[0] || "UNKNOWN";
+    // Find which invoice this item came from — use the first one for now
+    list.items.push({ id: id++, category: it.category, sku: it.sku, description: it.description, qty: it.qty, invoice: it.invoice || invoice });
+  });
+  state.modal = null; state.scanResults = null; state.scanError = null;
+  save(); render();
+}
+
+// ============ ACTIONS: MANUAL ADD ============
+function openAddItemsModal() { state.modal = "addItems"; state.bulkRows = [{ sku: "", description: "", qty: 1 }]; render(); }
+function updateBulkRow(i, f, v) { state.bulkRows[i][f] = f === "qty" ? (parseInt(v) || 1) : v; }
+function addBulkRow() { state.bulkRows.push({ sku: "", description: "", qty: 1 }); render(); }
+function removeBulkRow(i) { state.bulkRows.splice(i, 1); if (!state.bulkRows.length) state.bulkRows.push({ sku: "", description: "", qty: 1 }); render(); }
+function submitBulkAdd() {
+  const invoice = document.getElementById("bulk-invoice").value.trim();
+  const catSel = document.getElementById("bulk-cat").value;
+  const nc = document.getElementById("bulk-new-cat");
+  const category = catSel === "__new__" ? (nc ? nc.value.trim() || "Other" : "Other") : catSel;
+  if (!invoice) { alert("Invoice # required."); return; }
+  const rows = document.querySelectorAll(".bulk-add-row");
+  const items = [];
+  rows.forEach(row => { const inp = row.querySelectorAll("input"); const s = inp[0].value.trim(), d = inp[1].value.trim(), q = parseInt(inp[2].value) || 1; if (s) items.push({ sku: s, description: d, qty: q }); });
+  if (!items.length) { alert("Add at least one SKU."); return; }
+  const list = currentList(); let id = nextItemId(list);
+  items.forEach(it => { list.items.push({ id: id++, category, sku: it.sku, description: it.description, qty: it.qty, invoice }); });
+  state.modal = null; state.bulkRows = [{ sku: "", description: "", qty: 1 }]; save(); render();
+}
+function closeModal(e) { if (e.target.classList.contains("modal-overlay")) { state.modal = null; state.bulkRows = [{ sku: "", description: "", qty: 1 }]; render(); } }
+
+// ============ INIT ============
+load(); render();
+</script>
+</body>
+</html>
